@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Kalkulator Prediksi Klinis Skor Gensini</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f2f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+      @media (min-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .full-width {
+          grid-column: 1 / -1;
+        }
+      }
+      .form-group {
+        margin-bottom: 0;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #0066cc;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0052a3;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+      }
+      .header {
+        margin-bottom: 20px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Kalkulator Prediksi Klinis Skor Gensini</h2>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="usia">Usia:</label>
+          <input type="number" id="usia" step="1" value="60" />
+        </div>
+
+        <div class="form-group">
+          <label for="riw_ht">Riwayat Hipertensi:</label>
+          <select id="riw_ht">
+            <option value="0">Tidak</option>
+            <option value="1">Ya</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="bb">Berat Badan:</label>
+          <input type="number" id="bb" step="0.1" value="60" />
+        </div>
+
+        <div class="form-group">
+          <label for="td_s">Tekanan Darah Sistolik:</label>
+          <input type="number" id="td_s" step="0.1" value="96" />
+        </div>
+
+        <div class="form-group">
+          <label for="rr">Laju Pernapasan (RR):</label>
+          <input type="number" id="rr" step="0.1" value="28" />
+        </div>
+
+        <div class="form-group">
+          <label for="leukosit">Leukosit:</label>
+          <input type="number" id="leukosit" step="0.1" value="8.813" />
+        </div>
+
+        <div class="form-group">
+          <label for="sk">Kreatinin Serum (SK):</label>
+          <input type="number" id="sk" step="0.1" value="0.6" />
+        </div>
+
+        <div class="form-group">
+          <label for="gds">Gula Darah Sewaktu:</label>
+          <input type="number" id="gds" step="0.1" value="245" />
+        </div>
+
+        <div class="form-group">
+          <label for="tg">Trigliserida:</label>
+          <input type="number" id="tg" step="0.1" value="177" />
+        </div>
+
+        <div class="form-group">
+          <label for="hdl">Kadar HDL:</label>
+          <input type="number" id="hdl" step="0.1" value="68" />
+        </div>
+
+        <div class="form-group">
+          <label for="ldl">Kadar LDL:</label>
+          <input type="number" id="ldl" step="0.1" value="201" />
+        </div>
+
+        <div class="form-group">
+          <label for="ureum">Kadar Ureum:</label>
+          <input type="number" id="ureum" step="0.1" value="58" />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="hba1c">HbA1c:</label>
+          <input type="number" id="hba1c" step="0.1" value="10.7" />
+        </div>
+      </div>
+
+      <button onclick="calculate()">Kalkulasi Prediksi Skor Gensini</button>
+      <div id="result" class="result" style="display: none"></div>
+    </div>
+
+    <script>
+      // Model coefficients sesuai output GAM
+      const MODEL_COEFFICIENTS = {
+        intercept: 19.5373,
+        rr_terms: [
+          10.4185, 22.9244, 1.1568, 28.5055, 0.8165, 0.2375, -0.2986, 13.5266,
+          -0.3231,
+        ],
+        ureum_terms: [0.0012, 0.0065, 1.2808],
+        ldl_terms: [
+          -1.3975, 10.9212, 1.0584, -5.3735, -0.05, 7.5951, -2.2597, 25.6734,
+          4.2388,
+        ],
+        hdl_terms: [
+          -1.6803, 0.0512, 0.2935, 1.1611, 0.2045, -1.0143, 0.4765, -12.0484,
+          -2.7314,
+        ],
+        sk_terms: [12.8099, 47.8652, -0.3477],
+        td_s_terms: [
+          -2.824, 5.9761, -1.6805, -3.6287, 1.4193, 3.5005, 0.675, 18.0507,
+          -3.6267,
+        ],
+        bb_terms: [
+          -0.0026, 0.0333, -0.001, -0.0517, 0.0007, -0.0445, -0.0078, -0.3589,
+          -2.5616,
+        ],
+        tg_terms: [0.6493, -0.8659, -2.0346],
+        gds_terms: [
+          -2.3672, -8.3592, 5.5826, 12.0289, -3.5308, 7.8214, 5.1663, 38.4247,
+          -4.7174,
+        ],
+        leukosit_terms: [-1.2267e-10, 1.6459e-9, -1.8081],
+        hba1c_terms: [
+          -10.3666, 2.7506, -0.2145, -0.8807, 1.2078, -1.3623, -1.3215, 0.7124,
+          3.8213,
+        ],
+        riw_ht: -3.8669,
+        usia: 0.5018,
+        basis_info: {
+          RR: {
+            basis_type: 10,
+            df: 9,
+          },
+          UREUM: {
+            basis_type: 4,
+            df: 3,
+          },
+          LDL: {
+            basis_type: 10,
+            df: 9,
+          },
+          HDL: {
+            basis_type: 10,
+            df: 9,
+          },
+          SK: {
+            basis_type: 4,
+            df: 3,
+          },
+          TD_S: {
+            basis_type: 10,
+            df: 9,
+          },
+          BB: {
+            basis_type: 10,
+            df: 9,
+          },
+          TG: {
+            basis_type: 4,
+            df: 3,
+          },
+          GDS: {
+            basis_type: 10,
+            df: 9,
+          },
+          LEUKOSIT: {
+            basis_type: 4,
+            df: 3,
+          },
+          HBA1C: {
+            basis_type: 10,
+            df: 9,
+          },
+        },
+      };
+
+      // Fungsi untuk menghitung basis GAM yang lebih tepat
+      function computeGAMBasis(x, df, variable) {
+        const basis = [];
+
+        // Tentukan range berdasarkan variabel
+        const ranges = {
+          rr: [12, 40],
+          ureum: [10, 150],
+          ldl: [50, 250],
+          hdl: [20, 90],
+          sk: [0.4, 2.5],
+          td_s: [80, 200],
+          bb: [40, 100],
+          tg: [50, 500],
+          gds: [70, 400],
+          leukosit: [4, 20],
+          hba1c: [4, 15],
+        };
+
+        const range = ranges[variable.toLowerCase()] || [0, 100];
+
+        // Normalisasi input ke range [0,1]
+        let x_norm = (x - range[0]) / (range[1] - range[0]); // Ubah const menjadi let
+        x_norm = Math.min(Math.max(x_norm, 0), 1); // Bound ke [0,1]
+
+        // Hitung thin plate spline basis
+        for (let i = 0; i < df; i++) {
+          const knot = i / (df - 1);
+          const diff = x_norm - knot;
+          // Modifikasi perhitungan basis untuk menghindari NaN
+          let basis_value = diff * diff;
+          if (Math.abs(diff) > 0.00001) {
+            basis_value *= Math.log(Math.abs(diff));
+          }
+          basis.push(basis_value);
+        }
+
+        return basis;
+      }
+
+      // Fungsi untuk menghitung prediksi
+      function calculate() {
+        // Get input values
+        const inputs = {
+          rr: parseFloat(document.getElementById("rr").value),
+          ureum: parseFloat(document.getElementById("ureum").value),
+          ldl: parseFloat(document.getElementById("ldl").value),
+          hdl: parseFloat(document.getElementById("hdl").value),
+          sk: parseFloat(document.getElementById("sk").value),
+          td_s: parseFloat(document.getElementById("td_s").value),
+          riw_ht: parseInt(document.getElementById("riw_ht").value),
+          usia: parseFloat(document.getElementById("usia").value),
+          bb: parseFloat(document.getElementById("bb").value),
+          tg: parseFloat(document.getElementById("tg").value),
+          gds: parseFloat(document.getElementById("gds").value),
+          leukosit: parseFloat(document.getElementById("leukosit").value),
+          hba1c: parseFloat(document.getElementById("hba1c").value),
+        };
+
+        // Start with intercept
+        let prediction = MODEL_COEFFICIENTS.intercept;
+
+        // Update fungsi addSplineTerms
+        function addSplineTerms(value, coefficients, df, name) {
+          const basis = computeGAMBasis(value, df, name);
+          let contribution = 0;
+
+          // Scale factor berdasarkan df
+          const scale = df <= 4 ? 0.1 : 0.01;
+
+          for (let i = 0; i < coefficients.length; i++) {
+            contribution += coefficients[i] * basis[i] * scale;
+          }
+
+          console.log(`${name} contribution (df=${df}):`, contribution);
+          return contribution;
+        }
+
+        // Tambahkan kontribusi setiap variabel
+        prediction += addSplineTerms(
+          inputs.rr,
+          MODEL_COEFFICIENTS.rr_terms,
+          9,
+          "RR"
+        );
+        prediction += addSplineTerms(
+          inputs.ureum,
+          MODEL_COEFFICIENTS.ureum_terms,
+          3,
+          "Ureum"
+        );
+        prediction += addSplineTerms(
+          inputs.ldl,
+          MODEL_COEFFICIENTS.ldl_terms,
+          9,
+          "LDL"
+        );
+        prediction += addSplineTerms(
+          inputs.hdl,
+          MODEL_COEFFICIENTS.hdl_terms,
+          9,
+          "HDL"
+        );
+        prediction += addSplineTerms(
+          inputs.sk,
+          MODEL_COEFFICIENTS.sk_terms,
+          3,
+          "SK"
+        );
+        prediction += addSplineTerms(
+          inputs.td_s,
+          MODEL_COEFFICIENTS.td_s_terms,
+          9,
+          "TD_S"
+        );
+        prediction += addSplineTerms(
+          inputs.bb,
+          MODEL_COEFFICIENTS.bb_terms,
+          9,
+          "BB"
+        );
+        prediction += addSplineTerms(
+          inputs.tg,
+          MODEL_COEFFICIENTS.tg_terms,
+          3,
+          "TG"
+        );
+        prediction += addSplineTerms(
+          inputs.gds,
+          MODEL_COEFFICIENTS.gds_terms,
+          9,
+          "GDS"
+        );
+        prediction += addSplineTerms(
+          inputs.leukosit,
+          MODEL_COEFFICIENTS.leukosit_terms,
+          3,
+          "Leukosit"
+        );
+        prediction += addSplineTerms(
+          inputs.hba1c,
+          MODEL_COEFFICIENTS.hba1c_terms,
+          9,
+          "HbA1c"
+        );
+
+        // Tambahkan linear terms
+        prediction += inputs.riw_ht * MODEL_COEFFICIENTS.riw_ht;
+        prediction += inputs.usia * MODEL_COEFFICIENTS.usia;
+
+        // Display result
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = `
+    <h3>Hasil Prediksi</h3>
+    <p><strong>Skor Gensini Prediksi:</strong> ${prediction.toFixed(2)}</p>
+    <p class="note">*Catatan: Ini adalah model prediksi klinis dan tidak menggantikan penilaian klinis profesional.</p>
+  `;
+        resultDiv.style.display = "block";
+
+        console.log("Final prediction:", prediction);
+      }
+    </script>
+  </body>
+</html>
